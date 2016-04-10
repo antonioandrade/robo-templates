@@ -11,10 +11,9 @@ class RoboFile extends \Robo\Tasks {
     function __construct() {
         global $config;
         $config = new stdClass();
-        if(file_exists('./config.php')){
+        if (file_exists('./config.php')) {
             require './config.php';
-         }
-        else{
+        } else {
             echo "config.php was not found.\n";
             die();
         }
@@ -22,15 +21,17 @@ class RoboFile extends \Robo\Tasks {
 
     // REMOTE
 
-    function remotePush() {
+    function remotePush($post = true) {
         $this->dbDump();
         $this->filesSyncToRemote();
-        $this->filesSyncToRemotePost();
+        if ($post && $post !== 'false')
+            $this->filesSyncToRemotePost();
     }
 
-    function remoteFetch() {
+
+    function remotePull() {
         $this->taskSshExec($this->host, $this->ssh_user)
-            ->remoteDir($this->remote_path.'/site')
+            ->remoteDir($this->remote_path . '/site')
             ->exec('composer install')
             ->exec('php vendor/bin/robo db:dump')
             ->run();
@@ -52,7 +53,7 @@ class RoboFile extends \Robo\Tasks {
         if (file_exists('database/database.sql')) {
             $this->_exec("mysql -u $config->dbUser -p$config->dbPass $config->dbName < ./database/database.sql");
         } else {
-            echo "No database file found";
+            echo "No database file found.";
         }
     }
 
@@ -70,7 +71,6 @@ class RoboFile extends \Robo\Tasks {
             ->excludeVcs()
             ->checksum()
             ->wholeFile()
-            //->verbose()
             ->progress()
             ->humanReadable()
             ->stats()
@@ -87,7 +87,6 @@ class RoboFile extends \Robo\Tasks {
             ->excludeVcs()
             ->checksum()
             ->wholeFile()
-            //->verbose()
             ->progress()
             ->humanReadable()
             ->stats()
@@ -97,7 +96,7 @@ class RoboFile extends \Robo\Tasks {
 
     function filesSyncToRemotePost() {
         $this->taskSshExec($this->host, $this->ssh_user)
-            ->remoteDir($this->remote_path.'/site')
+            ->remoteDir($this->remote_path . '/site')
             ->exec('composer install')
             ->exec('php vendor/bin/robo db:import')
             ->run();
@@ -107,15 +106,13 @@ class RoboFile extends \Robo\Tasks {
         $this->taskRsync()
             ->fromHost($this->host)
             ->fromUser($this->ssh_user)
-            ->fromPath($this->remote_path.'/')
+            ->fromPath($this->remote_path . '/')
             ->toPath('./')
-            ->delete()
             ->recursive()
             ->excludeFrom('../.gitignore')
             ->excludeVcs()
             ->checksum()
             ->wholeFile()
-            //->verbose()
             ->progress()
             ->humanReadable()
             ->stats()
