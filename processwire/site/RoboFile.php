@@ -1,13 +1,27 @@
 <?php
 
+// PROCESSWIRE is required for the config file the be read.
 define('PROCESSWIRE', true);
 
 
 class RoboFile extends \Robo\Tasks {
+
+    /**
+     * @var string $host            Remote host.
+     */
     var $host = "host.com";
+    /**
+     * @var string $ssh_user        User on remote server, used for SSH login.
+     */
     var $ssh_user = "user";
+    /**
+     * @var string $remote_path     Path on remote server.
+     */
     var $remote_path = "/home/user/web/host.com/public_html";
 
+    /**
+     *  Require Processwire config so we can read database details.
+     */
     function __construct() {
         global $config;
         $config = new stdClass();
@@ -19,8 +33,11 @@ class RoboFile extends \Robo\Tasks {
         }
     }
 
-    // REMOTE
-
+    /**
+     * Pushes changes to remote server. By default will also sync database. Use false to disable remote database import.
+     *
+     * @param bool|true $post       Sync database?
+     */
     function remotePush($post = true) {
         $this->dbDump();
         $this->filesSyncToRemote();
@@ -29,6 +46,9 @@ class RoboFile extends \Robo\Tasks {
     }
 
 
+    /**
+     * Pulls changes from remote server. Will also sync database.
+     */
     function remotePull() {
         $this->taskSshExec($this->host, $this->ssh_user)
             ->remoteDir($this->remote_path . '/site')
@@ -39,8 +59,9 @@ class RoboFile extends \Robo\Tasks {
         $this->dbImport();
     }
 
-    // DATABASE
-
+    /**
+     * Creates local database dump.
+     */
     function dbDump() {
         global $config;
         $this->_exec("mkdir -p ./database");
@@ -48,6 +69,9 @@ class RoboFile extends \Robo\Tasks {
     }
 
 
+    /**
+     * Locally imports database dump, if it exists.
+     */
     function dbImport() {
         global $config;
         if (file_exists('database/database.sql')) {
@@ -57,8 +81,12 @@ class RoboFile extends \Robo\Tasks {
         }
     }
 
-    // FILES
-
+    /**
+     * Push local files to remote server.
+     *
+     * Will ignore files in .gitignore.
+     * Will include files in .rsync-include
+     */
     function filesSyncToRemote() {
         $this->taskRsync()
             ->fromPath('../')
@@ -94,6 +122,9 @@ class RoboFile extends \Robo\Tasks {
             ->run();
     }
 
+    /**
+     * Make remote server import database dump.
+     */
     function filesSyncToRemotePost() {
         $this->taskSshExec($this->host, $this->ssh_user)
             ->remoteDir($this->remote_path . '/site')
@@ -102,6 +133,9 @@ class RoboFile extends \Robo\Tasks {
             ->run();
     }
 
+    /**
+     * Pull files from remote.
+     */
     function filesSyncFromRemote() {
         $this->taskRsync()
             ->fromHost($this->host)
